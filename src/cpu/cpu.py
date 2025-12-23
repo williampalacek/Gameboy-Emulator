@@ -135,3 +135,29 @@ class CPU:
         high = self.memory.read(self.SP)
         self.SP = (self.SP + 1) & 0xFFFF
         return (high << 8) | low
+    
+    
+    
+    def step(self):
+        """
+        Execute one instruction and return cycle count.
+        This is called repeatedly to run the emulator.
+        """
+        if self.halted:
+            return 4  # HALT instruction pauses CPU but still consumes cycles
+        
+        opcode = self.fetch_byte()
+        self.cycles = 0
+        self.execute(opcode)
+        
+        return self.cycles
+    
+    def execute(self, opcode):
+        """
+        Decode and execute an instruction based on its opcode.
+        For now, only NOP is implemented.
+        """
+        if opcode == 0x00:  # NOP - No Operation
+            self.cycles = 4
+        else:
+            raise NotImplementedError(f"Opcode 0x{opcode:02X} not implemented")
