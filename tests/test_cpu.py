@@ -105,6 +105,59 @@ def test_nop_instruction():
     assert cpu.PC == initial_pc + 1, f"PC should increment by 1, got 0x{cpu.PC:04X}"
     
     print("✓ NOP instruction test passed!")
+    
+def test_ld_immediate():
+    """Test LD r, n instructions."""
+    memory = Memory()
+    cpu = CPU(memory)
+    
+    memory.write(0x0100, 0x3E)
+    memory.write(0x0101, 0x42)
+    cycles = cpu.step()
+    assert cpu.A == 0x42
+    assert cycles == 8
+    
+    memory.write(0x0102, 0x06)
+    memory.write(0x0103, 0x99)
+    cycles = cpu.step()
+    assert cpu.B == 0x99
+    
+    print("✓ LD immediate tests passed!")
+
+def test_ld_register_to_register():
+    """Test LD r, r' instructions."""
+    memory = Memory()
+    cpu = CPU(memory)
+    
+    cpu.B = 0x12
+    memory.write(0x0100, 0x78)  # LD A, B
+    cycles = cpu.step()
+    assert cpu.A == 0x12
+    assert cycles == 4
+    
+    print("✓ LD register to register tests passed!")
+
+def test_ld_memory_indirect():
+    """Test LD r, (HL) and LD (HL), r instructions."""
+    memory = Memory()
+    cpu = CPU(memory)
+    
+    cpu.set_hl(0xC000)
+    memory.write(0xC000, 0x77)
+    
+    memory.write(0x0100, 0x7E)  # LD A, (HL)
+    cycles = cpu.step()
+    assert cpu.A == 0x77
+    assert cycles == 8
+    
+    cpu.A = 0x88
+    cpu.set_hl(0xC001)
+    memory.write(0x0101, 0x77)  # LD (HL), A
+    cycles = cpu.step()
+    assert memory.read(0xC001) == 0x88
+    
+    print("✓ LD memory indirect tests passed!")
+
 
 if __name__ == "__main__":
     test_cpu_initialization()
@@ -112,4 +165,7 @@ if __name__ == "__main__":
     test_register_pairs()
     test_stack_operations()
     test_nop_instruction()
+    test_ld_immediate()
+    test_ld_register_to_register()
+    test_ld_memory_indirect()
     print("\n🎉 All CPU tests passed!")
