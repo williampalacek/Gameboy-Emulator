@@ -12,7 +12,7 @@ class CPU:
         self.E = 0xD8
         self.H = 0x01
         self.L = 0x4D
-        self.F = 0xB0  # Flags: [Z N H C 0 0 0 0]
+        self.F = 0xA0  # Flags: [Z N H C 0 0 0 0] = [1 0 1 0 0 0 0 0]
         
         # 16-bit registers
         self.SP = 0xFFFE  # Stack pointer
