@@ -1,4 +1,6 @@
-class CPU:
+from .opcodes import Opcodes
+
+class CPU(Opcodes):
     def __init__(self, memory):
         """
         Initialize the Game Boy CPU (Sharp LR35902).
@@ -24,7 +26,78 @@ class CPU:
         self.ime = False  # Interrupt Master Enable
         self.cycles = 0
         
+        # Build opcode lookup table
+        self.opcode_table = self._build_opcode_table()
         
+    
+    def _build_opcode_table(self):
+        """
+        Map opcodes to (handler, cycles).
+        Uses dictionary lookup instead of if/elif chain.
+        """
+        return {
+            # Control
+            0x00: (self.op_nop, 4),
+            
+            # 8-bit immediate loads (8 cycles)
+            0x06: (self.op_ld_b_n, 8),
+            0x0E: (self.op_ld_c_n, 8),
+            0x16: (self.op_ld_d_n, 8),
+            0x1E: (self.op_ld_e_n, 8),
+            0x26: (self.op_ld_h_n, 8),
+            0x2E: (self.op_ld_l_n, 8),
+            0x3E: (self.op_ld_a_n, 8),
+            
+            # Register to register (4 cycles)
+            0x40: (self.op_ld_b_b, 4), 0x41: (self.op_ld_b_c, 4),
+            0x42: (self.op_ld_b_d, 4), 0x43: (self.op_ld_b_e, 4),
+            0x44: (self.op_ld_b_h, 4), 0x45: (self.op_ld_b_l, 4),
+            0x47: (self.op_ld_b_a, 4),
+            
+            0x48: (self.op_ld_c_b, 4), 0x49: (self.op_ld_c_c, 4),
+            0x4A: (self.op_ld_c_d, 4), 0x4B: (self.op_ld_c_e, 4),
+            0x4C: (self.op_ld_c_h, 4), 0x4D: (self.op_ld_c_l, 4),
+            0x4F: (self.op_ld_c_a, 4),
+            
+            0x50: (self.op_ld_d_b, 4), 0x51: (self.op_ld_d_c, 4),
+            0x52: (self.op_ld_d_d, 4), 0x53: (self.op_ld_d_e, 4),
+            0x54: (self.op_ld_d_h, 4), 0x55: (self.op_ld_d_l, 4),
+            0x57: (self.op_ld_d_a, 4),
+            
+            0x58: (self.op_ld_e_b, 4), 0x59: (self.op_ld_e_c, 4),
+            0x5A: (self.op_ld_e_d, 4), 0x5B: (self.op_ld_e_e, 4),
+            0x5C: (self.op_ld_e_h, 4), 0x5D: (self.op_ld_e_l, 4),
+            0x5F: (self.op_ld_e_a, 4),
+            
+            0x60: (self.op_ld_h_b, 4), 0x61: (self.op_ld_h_c, 4),
+            0x62: (self.op_ld_h_d, 4), 0x63: (self.op_ld_h_e, 4),
+            0x64: (self.op_ld_h_h, 4), 0x65: (self.op_ld_h_l, 4),
+            0x67: (self.op_ld_h_a, 4),
+            
+            0x68: (self.op_ld_l_b, 4), 0x69: (self.op_ld_l_c, 4),
+            0x6A: (self.op_ld_l_d, 4), 0x6B: (self.op_ld_l_e, 4),
+            0x6C: (self.op_ld_l_h, 4), 0x6D: (self.op_ld_l_l, 4),
+            0x6F: (self.op_ld_l_a, 4),
+            
+            0x78: (self.op_ld_a_b, 4), 0x79: (self.op_ld_a_c, 4),
+            0x7A: (self.op_ld_a_d, 4), 0x7B: (self.op_ld_a_e, 4),
+            0x7C: (self.op_ld_a_h, 4), 0x7D: (self.op_ld_a_l, 4),
+            0x7F: (self.op_ld_a_a, 4),
+            
+            # Memory indirect (8 cycles)
+            0x46: (self.op_ld_b_hl, 8), 0x4E: (self.op_ld_c_hl, 8),
+            0x56: (self.op_ld_d_hl, 8), 0x5E: (self.op_ld_e_hl, 8),
+            0x66: (self.op_ld_h_hl, 8), 0x6E: (self.op_ld_l_hl, 8),
+            0x7E: (self.op_ld_a_hl, 8),
+            
+            0x70: (self.op_ld_hl_b, 8), 0x71: (self.op_ld_hl_c, 8),
+            0x72: (self.op_ld_hl_d, 8), 0x73: (self.op_ld_hl_e, 8),
+            0x74: (self.op_ld_hl_h, 8), 0x75: (self.op_ld_hl_l, 8),
+            0x77: (self.op_ld_hl_a, 8),
+            
+            0x36: (self.op_ld_hl_n, 12),
+        }
+    
         
     def get_flag(self, flag):
         """
@@ -153,11 +226,10 @@ class CPU:
         return self.cycles
     
     def execute(self, opcode):
-        """
-        Decode and execute an instruction based on its opcode.
-        For now, only NOP is implemented.
-        """
-        if opcode == 0x00:  # NOP - No Operation
-            self.cycles = 4
+        """Execute opcode using lookup table."""
+        if opcode in self.opcode_table:
+            handler, cycles = self.opcode_table[opcode]
+            handler()
+            self.cycles = cycles
         else:
             raise NotImplementedError(f"Opcode 0x{opcode:02X} not implemented")
